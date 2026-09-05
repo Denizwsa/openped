@@ -17,6 +17,7 @@ import { useDeviceInfo } from '@/lib/device';
 import { isDesktopShell } from '@/lib/desktop';
 import { useUIStore } from '@/stores/useUIStore';
 import { useTerminalStore } from '@/stores/useTerminalStore';
+import { terminalSnapshotSize } from '@/lib/terminalApi';
 import { extractAnnouncedUrls, extractProjectActionUrl } from '@/lib/terminalPreview';
 import { setAnnouncedDevServers } from '@/lib/browser/announcedServers';
 import { useThemeSystem } from '@/contexts/useThemeSystem';
@@ -641,7 +642,7 @@ export const ProjectActionsButton = ({
           onEvent: (event) => {
             if (!matchesActionExecution(tabDirectory, tab.id, currentExecutionId)) return;
             if (event.type === 'snapshot') {
-              useTerminalStore.getState().replaceBuffer(tabDirectory, tab.id, event.data ?? '', event.sequence ?? 0);
+              useTerminalStore.getState().replaceBuffer(tabDirectory, tab.id, event.data ?? '', event.sequence ?? 0, terminalSnapshotSize(event));
               if (event.status === 'running') {
                 useTerminalStore.getState().setTabLifecycle(tabDirectory, tab.id, 'running', { expectedExecutionId: currentExecutionId });
               }
@@ -851,7 +852,7 @@ export const ProjectActionsButton = ({
             if (!matchesActionExecution(executionDirectory, tabId, adoptedExecutionId)) return;
             if (event.purpose?.type === 'project-action' && event.purpose.executionId !== adoptedExecutionId) return;
             if (event.type === 'snapshot') {
-              useTerminalStore.getState().replaceBuffer(executionDirectory, tabId, event.data ?? '', event.sequence ?? 0);
+              useTerminalStore.getState().replaceBuffer(executionDirectory, tabId, event.data ?? '', event.sequence ?? 0, terminalSnapshotSize(event));
               useTerminalStore.getState().setConnecting(executionDirectory, tabId, false, { expectedExecutionId: adoptedExecutionId });
               if (event.purpose?.type === 'project-action') {
                 useTerminalStore.getState().setTabPurpose(executionDirectory, tabId, { type: 'project-action', actionId: event.purpose.actionId, executionId: event.purpose.executionId });

@@ -184,6 +184,10 @@ export function createTerminalRuntime({
 
   const snapshot = (session) => ({
     t: 'snapshot', v: 3, s: session.id, q: session.sequence, history: session.history,
+    // The PTY size the history was drawn for: a client replays history at this
+    // size before fitting its own viewport, so shell output wrapped for one
+    // width never gets re-laid-out at another.
+    cols: session.cols, rows: session.rows,
     status: session.status, exitCode: session.exitCode, signal: session.signal,
     mode: session.mode ?? INTERACTIVE_TERMINAL_MODE, purpose: getSessionPurpose(session),
     runtime, ptyBackend: session.backend,

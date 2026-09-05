@@ -5,15 +5,21 @@ import { Window } from 'happy-dom';
 
 import { useTerminalStore, type TerminalChunk } from '@/stores/useTerminalStore';
 
-const terminalEvents: Array<{ type: 'write'; data: string } | { type: 'reset' }> = [];
+type TerminalEvent =
+  | { type: 'write'; data: string }
+  | { type: 'reset' }
+  | { type: 'resize'; cols: number; rows: number };
+const terminalEvents: TerminalEvent[] = [];
 
 class GhosttyTerminalDouble {
   public options: { cursorBlink: boolean };
   public cols = 80;
   public rows = 24;
 
-  constructor(options: { cursorBlink?: boolean }) {
+  constructor(options: { cursorBlink?: boolean; cols?: number; rows?: number }) {
     this.options = { cursorBlink: options.cursorBlink ?? false };
+    this.cols = options.cols ?? 80;
+    this.rows = options.rows ?? 24;
   }
 
   loadAddon() {}
@@ -24,6 +30,11 @@ class GhosttyTerminalDouble {
   write(data: string, callback?: () => void) {
     terminalEvents.push({ type: 'write', data });
     callback?.();
+  }
+  resize(cols: number, rows: number) {
+    this.cols = cols;
+    this.rows = rows;
+    terminalEvents.push({ type: 'resize', cols, rows });
   }
   reset() {
     terminalEvents.push({ type: 'reset' });
@@ -251,5 +262,47 @@ describe('TerminalViewport chunk replay integration', () => {
     ]);
     expect(terminalEvents.filter((event) => event.type === 'write' && event.data === replacementReplayPayload)).toHaveLength(1);
     expect(terminalEvents.filter((event) => event.type === 'write' && event.data === 'tail-live\n')).toHaveLength(1);
+  });
+
+  test('would fail if snapshot history drawn for another PTY size were replayed at the fitted size', async () => {
+    // A zsh prompt drawn for a 94-column PTY: the `%` end-of-line mark plus
+    // padding fills exactly one 94-column row. Written into an 80-column
+    // emulator it wraps and the mark survives as a stray fragment.
+    const history = `[7m%[0m${' '.repeat(93)}\r \r[J~ ❯ `;
+    const chunks: TerminalChunk[] = [
+      { id: 1, data: history, byteLength: history.length, size: { cols: 94, rows: 56 } },
+      { id: 2, data: 'live\n', byteLength: 5 },
+    ];
+
+    await renderViewport(root, chunks);
+    await flushGhosttyLoad();
+
+    // Default-background resets inside the history are rewritten before the
+    // write, so identify the history write by the prompt it carries.
+    const relevant = terminalEvents
+      .filter((event) => event.type === 'resize' || (event.type === 'write' && (event.data.includes('~ ❯') || event.data === 'live\n')))
+      .map((event) => (event.type === 'write' && event.data.includes('~ ❯') ? { type: 'write', data: 'history' } : event));
+    expect(relevant).toEqual([
+      { type: 'resize', cols: 94, rows: 56 },
+      { type: 'write', data: 'history' },
+      { type: 'resize', cols: 80, rows: 24 },
+      { type: 'write', data: 'live\n' },
+    ]);
+
+    terminalEvents.length = 0;
+    await renderViewport(root, [...chunks, { id: 3, data: 'more\n', byteLength: 5 }]);
+    expect(terminalEvents).toEqual([{ type: 'write', data: 'more\n' }]);
+  });
+
+  test('would fail if a snapshot drawn at the fitted size still bounced the emulator through a resize', async () => {
+    const chunks: TerminalChunk[] = [
+      { id: 1, data: 'prompt ❯ ', byteLength: 11, size: { cols: 80, rows: 24 } },
+    ];
+
+    await renderViewport(root, chunks);
+    await flushGhosttyLoad();
+
+    expect(terminalEvents.filter((event) => event.type === 'resize')).toHaveLength(0);
+    expect(replayWriteEvents(['prompt ❯ '])).toEqual([{ type: 'write', data: 'prompt ❯ ' }]);
   });
 });

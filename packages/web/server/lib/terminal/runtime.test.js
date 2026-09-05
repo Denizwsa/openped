@@ -682,8 +682,8 @@ describe('terminal runtime', () => {
       sockets.push(first.socket);
       first.socket.send(createTerminalWsControlFrame({ t: 'attach', v: 3, s: 'term-live' }));
       first.socket.send(createTerminalWsControlFrame({ t: 'attach', v: 3, s: 'term-second' }));
-      expect(await first.next('snapshot', 'term-live')).toMatchObject({ s: 'term-live', q: 0, history: '', status: 'running' });
-      expect(await first.next('snapshot', 'term-second')).toMatchObject({ s: 'term-second', q: 0, history: '', status: 'running' });
+      expect(await first.next('snapshot', 'term-live')).toMatchObject({ s: 'term-live', q: 0, history: '', status: 'running', cols: 80, rows: 24 });
+      expect(await first.next('snapshot', 'term-second')).toMatchObject({ s: 'term-second', q: 0, history: '', status: 'running', cols: 80, rows: 24 });
       first.socket.send(createTerminalWsControlFrame({ t: 'write', v: 3, s: 'term-live', d: 'echo ok\r' }));
       first.socket.send(createTerminalWsControlFrame({ t: 'write', v: 3, s: 'term-second', d: 'pwd\r' }));
       first.socket.send(createTerminalWsControlFrame({ t: 'write', v: 3, s: 'term-live', d: 'echo next\r' }));
@@ -707,10 +707,17 @@ describe('terminal runtime', () => {
       expect(secondClosed.status).toBe(200);
       first.socket.close();
 
+      // A reconnecting client replays history at the size the PTY currently has.
+      const resized = await fetch(`${base}/api/terminal/term-live/resize`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ cols: 120, rows: 40 }),
+      });
+      expect(resized.status).toBe(200);
+
       const second = await openTerminalSocket(socketUrl);
       sockets.push(second.socket);
       second.socket.send(createTerminalWsControlFrame({ t: 'attach', v: 3, s: 'term-live' }));
-      expect(await second.next('snapshot')).toMatchObject({ s: 'term-live', q: 2, history: 'ok\r\n', status: 'running' });
+      expect(await second.next('snapshot')).toMatchObject({ s: 'term-live', q: 2, history: 'ok\r\n', status: 'running', cols: 120, rows: 40 });
       processes[0].emitExit(7);
       expect(await second.next('exit')).toMatchObject({ s: 'term-live', q: 3, exitCode: 7 });
 

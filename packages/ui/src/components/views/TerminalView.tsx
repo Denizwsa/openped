@@ -17,7 +17,7 @@ import { Icon } from "@/components/icon/Icon";
 import type { IconName } from '@/components/icon/icons';
 import { useDeviceInfo } from '@/lib/device';
 import { useRuntimeAPIs } from '@/hooks/useRuntimeAPIs';
-import { isTerminalCwdMissingError } from '@/lib/terminalApi';
+import { isTerminalCwdMissingError, terminalSnapshotSize } from '@/lib/terminalApi';
 import { extractTerminalPreviewUrl, isTerminalPreviewUrlAvailable } from '@/lib/terminalPreview';
 import { useI18n } from '@/lib/i18n';
 import { PROJECT_ACTION_ICONS } from '@/lib/projectActions';
@@ -321,7 +321,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ visible, directory }
                                 setIsReconnectPending(false);
                                 focusTerminalWhenWindowActive();
 
-                                replaceBuffer(directory, tabId, event.data ?? '', event.sequence ?? 0);
+                                replaceBuffer(directory, tabId, event.data ?? '', event.sequence ?? 0, terminalSnapshotSize(event));
                                 scanTerminalPreviewOutput(directory, tabId, event.data ?? '');
                                 if (event.status === 'exited') setTabLifecycle(directory, tabId, 'exited');
                                 break;
@@ -763,6 +763,14 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ visible, directory }
         [activeModifier, focusTerminalController, isReconnectPending, setActiveModifier, t, terminal]
     );
 
+    // The estimate only seeds the size a brand-new shell is spawned with. A
+    // running PTY keeps its size until Ghostty has fitted the viewport for
+    // real; resizing it to an estimate makes the shell redraw for a width the
+    // emulator never shows.
+    const handleProvisionalSize = React.useCallback((cols: number, rows: number) => {
+        lastViewportSizeRef.current = { cols, rows };
+    }, []);
+
     const handleViewportResize = React.useCallback(
         (cols: number, rows: number) => {
             const previous = lastViewportSizeRef.current;
@@ -1145,6 +1153,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ visible, directory }
                             chunks={bufferChunks}
                             onInput={handleViewportInput}
                             onResize={handleViewportResize}
+                            onProvisionalSize={handleProvisionalSize}
                             theme={xtermTheme}
                             monoFont={monoFont}
                             fontFamily={resolvedFontStack}

@@ -376,7 +376,7 @@ describe('TerminalView project action tab indicator', () => {
     });
     connectBehavior = (_sessionId, handlers) => {
       void Promise.resolve().then(() => {
-        handlers.onEvent({ type: 'snapshot', data: snapshotData, sequence: 7, status: 'running' });
+        handlers.onEvent({ type: 'snapshot', data: snapshotData, sequence: 7, status: 'running', cols: 94, rows: 56 });
       });
       return { close: () => undefined };
     };
@@ -391,6 +391,7 @@ describe('TerminalView project action tab indicator', () => {
     expect(createSessionCalls.length).toBe(0);
     expect(readBufferContent('/repo', actionTab.id)).toBe(snapshotData);
     expect(useTerminalStore.getState().getBuffer('/repo', actionTab.id).lastSequence).toBe(7);
+    expect(useTerminalStore.getState().getBuffer('/repo', actionTab.id).chunks[0]?.size).toEqual({ cols: 94, rows: 56 });
     expect(replaceCount).toBe(1);
   });
 
