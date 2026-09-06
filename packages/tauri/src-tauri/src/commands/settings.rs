@@ -43,7 +43,7 @@ pub struct RelayDescriptor {
     pub host_enc_pub_jwk: Value,
 }
 
-fn settings_path() -> PathBuf {
+pub(crate) fn settings_path() -> PathBuf {
     if let Ok(dir) = std::env::var("OPENCHAMBER_DATA_DIR") {
         if !dir.trim().is_empty() {
             return PathBuf::from(dir).join(SETTINGS_FILE_NAME);
@@ -58,7 +58,7 @@ fn settings_path() -> PathBuf {
         .join(SETTINGS_FILE_NAME)
 }
 
-fn read_settings_file(path: &Path) -> Value {
+pub(crate) fn read_settings_file(path: &Path) -> Value {
     let Ok(raw) = std::fs::read_to_string(path) else {
         return Value::Object(Default::default());
     };
@@ -68,7 +68,7 @@ fn read_settings_file(path: &Path) -> Value {
     }
 }
 
-async fn write_settings_file(path: &Path, root: &Value) -> std::io::Result<()> {
+pub(crate) async fn write_settings_file(path: &Path, root: &Value) -> std::io::Result<()> {
     let parent = path.parent().unwrap_or(Path::new("."));
     tokio::fs::create_dir_all(parent).await?;
     let ts = SystemTime::now()

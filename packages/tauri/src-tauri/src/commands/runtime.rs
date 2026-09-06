@@ -56,8 +56,15 @@ pub fn build_initialization_script(config: &RuntimeConfig) -> String {
                 window.__OPENCHAMBER_HOME__ = {home};
             }}
             if (window.__OPENCHAMBER_ELECTRON__ === undefined) {{
+                // NOTE: `runtime` is a shell-identity flag, not a technology
+                // label. The shared UI treats `runtime === 'electron'` as
+                // "compatible desktop shell" (isDesktopShell / isElectronShell
+                // in packages/ui/src/lib/desktop.ts). The Tauri shell speaks
+                // the same __OPENCHAMBER_DESKTOP__ bridge, so it presents the
+                // same identity; anything else silently disables desktop mode
+                // (host switcher, tray, boot-outcome flow).
                 window.__OPENCHAMBER_ELECTRON__ = {{
-                    runtime: 'tauri',
+                    runtime: 'electron',
                     arch: {arch},
                     trayEnabled: {tray_enabled},
                     version: {version},

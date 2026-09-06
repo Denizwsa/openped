@@ -60,8 +60,10 @@ export async function applyRuntimeConfig(): Promise<RuntimeConfig | null> {
       window.__OPENCHAMBER_HOME__ = cfg.home_directory;
     }
     if (!window.__OPENCHAMBER_ELECTRON__) {
+      // Same identity flag as the Rust initialization script: 'electron'
+      // means "compatible desktop shell" to the shared UI.
       window.__OPENCHAMBER_ELECTRON__ = {
-        runtime: 'tauri',
+        runtime: 'electron',
         arch: cfg.arch,
         trayEnabled: cfg.tray_enabled,
         version: cfg.app_version,

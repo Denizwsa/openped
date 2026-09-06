@@ -11,6 +11,7 @@
 //! 4.  Open the corresponding capability in `capabilities/default.json` if
 //!     a Tauri plugin permission is involved.
 
+pub mod desktop;
 pub mod files;
 pub mod notifications;
 pub mod process;

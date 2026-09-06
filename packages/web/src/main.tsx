@@ -26,6 +26,8 @@ declare global {
 // the Electron main process used to inline.
 installTauriBridge();
 
+
+
 const hostedSurface: HostedSurface = resolveHostedSurface();
 
 type PrerenderingDocument = Document & {
