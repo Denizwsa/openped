@@ -65,12 +65,24 @@ impl Supervisor {
 
     /// Start both children. Returns the resolved endpoints once both health
     /// probes succeed (or the configured timeout elapses).
+    ///
+    /// If a compatible server is already listening (e.g. orphaned from a
+    /// previous run that panicked before shutdown), adopt it instead of
+    /// spawning a duplicate that would die with EADDRINUSE.
     pub async fn start(&self, openchamber_url: String, opencode_url: String) -> Result<ServerEndpoints> {
         let openchamber_port = port_from_url(&openchamber_url)?;
         let opencode_port = port_from_url(&opencode_url)?;
 
         if env_flag("OPENCODE_SKIP_START") {
             log::info!("[supervisor] OPENCODE_SKIP_START set, skipping opencode child spawn");
+        } else if probe_health(&format!("{}/global/health", opencode_url.trim_end_matches('/')))
+            .await
+            .unwrap_or(false)
+        {
+            log::info!(
+                "[supervisor] adopting existing opencode server at {}",
+                opencode_url
+            );
         } else {
             self.spawn_opencode(opencode_port).await?;
         }
@@ -78,6 +90,14 @@ impl Supervisor {
         if env_flag("OPENCHAMBER_SKIP_LOCAL_SERVER") {
             log::info!(
                 "[supervisor] OPENCHAMBER_SKIP_LOCAL_SERVER set, skipping openchamber child spawn"
+            );
+        } else if probe_health(&format!("{}/health", openchamber_url.trim_end_matches('/')))
+            .await
+            .unwrap_or(false)
+        {
+            log::info!(
+                "[supervisor] adopting existing openchamber server at {}",
+                openchamber_url
             );
         } else {
             self.spawn_openchamber(openchamber_port).await?;
