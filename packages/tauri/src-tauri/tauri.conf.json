@@ -68,7 +68,7 @@
       "active": true,
       "dialog": false,
       "endpoints": [
-        "https://github.com/Denizwsa/openchamber/releases/latest/download/{{target}}/{{arch}}/{{app_filename}}.tar.gz"
+        "https://github.com/Denizwsa/openped/releases/latest/download/{{target}}/{{arch}}/{{app_filename}}.tar.gz"
       ],
       "pubkey": ""
     }
