@@ -68,10 +68,37 @@ export async function applyRuntimeConfig(): Promise<RuntimeConfig | null> {
     if (!window.__OPENCHAMBER_PLATFORM__) {
       window.__OPENCHAMBER_PLATFORM__ = cfg.platform;
     }
+    await applyBootOutcome();
     return cfg;
   } catch (err) {
     console.warn('[runtimeConfig] get_runtime_config failed', err);
     return null;
+  }
+}
+
+/**
+ * Pull the supervisor's boot outcome and expose it as
+ * `window.__OPENCHAMBER_DESKTOP_BOOT_OUTCOME__`.
+ *
+ * The desktop UI polls this global and refuses to dismiss its splash
+ * screen until a valid outcome appears. The Rust backend pushes it via
+ * `WebviewWindow::eval` once the supervisor settles; this fetch covers
+ * reloads (HMR, manual refresh) that wipe the injected global.
+ */
+export async function applyBootOutcome(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (window.__OPENCHAMBER_DESKTOP_BOOT_OUTCOME__ !== undefined) return;
+  try {
+    const outcome = await invoke<{
+      target: string | null;
+      status: string;
+    } | null>('get_boot_outcome');
+    if (outcome && typeof outcome.status === 'string') {
+      window.__OPENCHAMBER_DESKTOP_BOOT_OUTCOME__ = outcome;
+    }
+  } catch {
+    // Supervisor still starting — the Rust-side eval will set it, and the
+    // App's own poller keeps waiting.
   }
 }
 
@@ -91,5 +118,9 @@ declare global {
       macosMajor: number | null;
     };
     __OPENCHAMBER_PLATFORM__?: string;
+    __OPENCHAMBER_DESKTOP_BOOT_OUTCOME__?: {
+      target: string | null;
+      status: string;
+    };
   }
 }

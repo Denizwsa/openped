@@ -123,3 +123,73 @@ pub fn platform_info(state: tauri::State<RuntimeConfig>) -> PlatformInfo {
 pub fn is_desktop() -> bool {
     true
 }
+
+// ── Boot outcome ──
+
+/// Structured boot outcome injected as
+/// `window.__OPENCHAMBER_DESKTOP_BOOT_OUTCOME__`.
+///
+/// Shape must match `DesktopBootOutcome` in
+/// `packages/ui/src/lib/desktopBoot.ts`: `{ target, status }` with
+/// `target: 'local' | 'remote' | null`. The desktop UI strictly requires a
+/// valid outcome before dismissing the splash screen.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BootOutcome {
+    pub target: Option<String>,
+    pub status: String,
+}
+
+impl BootOutcome {
+    pub fn local_ok() -> Self {
+        Self {
+            target: Some("local".to_string()),
+            status: "ok".to_string(),
+        }
+    }
+
+    pub fn local_unreachable() -> Self {
+        Self {
+            target: Some("local".to_string()),
+            status: "unreachable".to_string(),
+        }
+    }
+
+    /// JS snippet that sets the global the UI polls for.
+    /// Serialized with serde_json so quoting is always safe.
+    pub fn as_injection_script(&self) -> String {
+        match serde_json::to_string(self) {
+            Ok(json) => format!(
+                "window.__OPENCHAMBER_DESKTOP_BOOT_OUTCOME__={};",
+                json
+            ),
+            Err(_) => String::new(),
+        }
+    }
+}
+
+/// Mutable boot-outcome slot, filled once the supervisor settles.
+/// The frontend also reads it through `get_boot_outcome` on every page
+/// load (covers HMR/dev reloads that wipe the injected global).
+pub struct BootOutcomeState(pub tokio::sync::Mutex<Option<BootOutcome>>);
+
+impl BootOutcomeState {
+    pub fn new() -> Self {
+        Self(tokio::sync::Mutex::new(None))
+    }
+}
+
+impl Default for BootOutcomeState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Returns the last computed boot outcome, or null while the supervisor
+/// is still starting. The TS adapter (`applyRuntimeConfig`) applies it to
+/// `window.__OPENCHAMBER_DESKTOP_BOOT_OUTCOME__`.
+#[tauri::command]
+pub async fn get_boot_outcome(
+    state: tauri::State<'_, BootOutcomeState>,
+) -> Result<Option<BootOutcome>, String> {
+    Ok(state.0.lock().await.clone())
+}

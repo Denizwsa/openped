@@ -17,6 +17,7 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_deep_link::DeepLinkExt;
 
 use crate::commands;
+use crate::commands::runtime::{BootOutcome, BootOutcomeState};
 use crate::process::{Supervisor, SupervisorExt};
 use crate::runtime_config::RuntimeConfig;
 
@@ -63,20 +64,48 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(runtime_config.clone())
         .manage(Supervisor::new())
+        .manage(BootOutcomeState::new())
         .setup(move |app| {
             let handle = app.handle().clone();
 
             // Start the opencode CLI and the openchamber web server. They run
             // as children of the Tauri process and are killed at exit.
+            // Afterwards compute the boot outcome the desktop UI waits for
+            // before dismissing its splash screen, store it for
+            // `get_boot_outcome`, and push it into the main window.
             let supervisor = handle.supervisor();
             let openchamber_url_clone = openchamber_url.clone();
             let opencode_url_clone = opencode_url.clone();
+            let handle_for_boot = handle.clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(err) = supervisor
-                    .start(openchamber_url_clone, opencode_url_clone)
-                    .await
-                {
+                let handle = handle_for_boot;
+                let start_result = supervisor
+                    .start(openchamber_url_clone.clone(), opencode_url_clone)
+                    .await;
+                if let Err(err) = &start_result {
                     log::error!("[supervisor] failed to start: {err:#}");
+                }
+
+                let outcome = if start_result.is_ok() {
+                    BootOutcome::local_ok()
+                } else {
+                    BootOutcome::local_unreachable()
+                };
+
+                {
+                    let state = handle.state::<BootOutcomeState>();
+                    *state.0.lock().await = Some(outcome.clone());
+                }
+
+                let script = outcome.as_injection_script();
+                if !script.is_empty() {
+                    if let Some(window) = handle.get_webview_window("main") {
+                        if let Err(err) = window.eval(&script) {
+                            log::warn!("[bootstrap] boot outcome injection failed: {err:#}");
+                        } else {
+                            log::info!("[bootstrap] boot outcome injected: {:?}", outcome.status);
+                        }
+                    }
                 }
             });
 
@@ -143,6 +172,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::runtime::get_runtime_config,
+            commands::runtime::get_boot_outcome,
             commands::runtime::quit_app,
             commands::runtime::restart_app,
             commands::runtime::open_external,
