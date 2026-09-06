@@ -32,6 +32,9 @@ export async function applyRuntimeConfig(): Promise<RuntimeConfig | null> {
     typeof window.__OPENCHAMBER_ELECTRON__ !== 'undefined' &&
     window.__OPENCHAMBER_ELECTRON__.runtime === 'tauri';
   if (initAlreadyApplied) {
+    // Initialization script already ran (dev reload/HMR). The boot outcome
+    // global may still have been wiped by the reload, so always re-apply it.
+    await applyBootOutcome();
     return null;
   }
 
