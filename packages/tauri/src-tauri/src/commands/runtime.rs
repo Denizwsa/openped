@@ -198,5 +198,11 @@ impl Default for BootOutcomeState {
 pub async fn get_boot_outcome(
     state: tauri::State<'_, BootOutcomeState>,
 ) -> Result<Option<BootOutcome>, String> {
-    Ok(state.0.lock().await.clone())
+    // Logged deliberately: proves the frontend invoke path works end to end.
+    let outcome = state.0.lock().await.clone();
+    log::info!(
+        "[runtime] get_boot_outcome called -> {:?}",
+        outcome.as_ref().map(|o| o.status.clone())
+    );
+    Ok(outcome)
 }

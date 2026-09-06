@@ -103,8 +103,12 @@ impl Supervisor {
             self.spawn_openchamber(openchamber_port).await?;
         }
 
-        wait_for_health(&openchamber_url, "/health", Duration::from_secs(20)).await?;
-        wait_for_health(&opencode_url, "/global/health", Duration::from_secs(10)).await?;
+        // Generous timeouts: on a loaded machine the node server plus its
+        // managed opencode can take well over 20s (observed under javac
+        // + agent load). A premature timeout produces a false "unreachable"
+        // boot outcome and a stuck splash.
+        wait_for_health(&openchamber_url, "/health", Duration::from_secs(90)).await?;
+        wait_for_health(&opencode_url, "/global/health", Duration::from_secs(30)).await?;
 
         Ok(ServerEndpoints {
             openchamber_url,
