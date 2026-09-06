@@ -281,7 +281,9 @@ fn resolve_openchamber_launcher(port: u16) -> Result<(String, Vec<String>)> {
     }
 
     // Dev mode: workspace root is two levels up from src-tauri.
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_default();
+    // NOTE: CARGO_MANIFEST_DIR only exists at compile time, so bake it in
+    // with env!() — std::env::var would find nothing at runtime.
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let workspace_root = PathBuf::from(&manifest_dir)
         .parent()
         .and_then(|p| p.parent())
