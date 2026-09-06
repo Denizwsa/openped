@@ -1,0 +1,33 @@
+{
+  "name": "@openchamber/tauri",
+  "version": "1.22.2",
+  "private": true,
+  "description": "Tauri 2 native shell for OpenChamber",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tauri dev --config src-tauri/tauri.conf.json",
+    "build": "tauri build --config src-tauri/tauri.conf.json",
+    "build:debug": "tauri build --debug --config src-tauri/tauri.conf.json",
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'lint: see oxlint at repo root'"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.7.0",
+    "@tauri-apps/plugin-dialog": "^2.3.0",
+    "@tauri-apps/plugin-fs": "^2.5.0",
+    "@tauri-apps/plugin-notification": "^2.4.0",
+    "@tauri-apps/plugin-shell": "^2.3.0",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-os": "^2.3.0",
+    "@tauri-apps/plugin-deep-link": "^2.4.0",
+    "@tauri-apps/plugin-log": "^2.7.0",
+    "@tauri-apps/plugin-opener": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.10.0",
+    "@tauri-apps/plugin-window-state": "^2.4.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.0",
+    "typescript": "~5.9.0"
+  }
+}

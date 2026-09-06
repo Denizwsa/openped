@@ -1,4 +1,5 @@
 import { createConfiguredWebAPIs, getDesktopRelayRestoreReady } from './runtimeConfig';
+import { installTauriBridge, applyRuntimeConfig } from '@openchamber/tauri';
 import { registerSW } from 'virtual:pwa-register';
 
 import type { RuntimeAPIs } from '@openchamber/ui/lib/api/types';
@@ -16,6 +17,14 @@ declare global {
     __OPENCHAMBER_SURFACE__?: HostedSurface;
   }
 }
+
+// Install the Tauri bridge as early as possible so the shared UI's
+// `window.__OPENCHAMBER_DESKTOP__` calls reach Rust commands instead of
+// failing with "window.__OPENCHAMBER_DESKTOP__ is undefined". In packaged
+// builds (where initialization_script can't rewrite the static HTML) the
+// bridge also pulls the runtime config and applies it to the same globals
+// the Electron main process used to inline.
+installTauriBridge();
 
 const hostedSurface: HostedSurface = resolveHostedSurface();
 
@@ -85,6 +94,8 @@ const unregisterDevelopmentServiceWorkers = (): void => {
 };
 
 const start = async (): Promise<void> => {
+  await applyRuntimeConfig();
+
   const embeddedBootstrap = isEmbeddedSessionChat()
     ? await requestEmbeddedSessionRuntimeBootstrap()
     : null;

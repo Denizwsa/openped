@@ -23,23 +23,22 @@ Run commands from the project root unless a section says otherwise.
 
 Both are configurable via env vars: `OPENCHAMBER_PORT`, `OPENCHAMBER_HMR_UI_PORT`, `OPENCHAMBER_HMR_API_PORT`.
 
-### Desktop (Electron)
+### Desktop (Tauri)
 
 ```bash
-bun run electron:dev          # HMR web UI + Electron shell
-bun run electron:dev:bundled  # Electron shell using built web assets
-bun run electron:build        # Package desktop app for the current platform
+bun run tauri:dev     # Live Tauri shell + opencode CLI + opencode server
+bun run tauri:build   # Native .deb / .AppImage / .dmg / .zip artifacts
 ```
 
-Desktop supports macOS, Windows, and Linux. The build output is written to `packages/electron/dist`.
+Desktop supports macOS and Linux (x64 + arm64). Windows is intentionally not
+shipped from this fork. The build output is written to `packages/tauri/src-tauri/target/release/bundle`.
 
-macOS builds create `dmg` and `zip` files. You need Xcode/build tools for notarized packaging and icon asset work.
+macOS builds create `dmg` and `zip` files. You need Xcode command-line tools.
 
-Windows builds create an NSIS installer. If signing env vars are not set, the build script makes an unsigned installer.
+Linux builds produce `.deb`, `.rpm`, and `.AppImage` for the native host
+architecture via the Tauri bundler.
 
-Linux builds produce an AppImage for the native x64 or arm64 host.
-
-For desktop-specific details, see [`packages/electron/README.md`](./packages/electron/README.md).
+For desktop-specific details, see [`packages/tauri/README.md`](./packages/tauri/README.md).
 
 ### VS Code Extension
 
@@ -72,8 +71,8 @@ bun run lint:ui
 | `bun run build` | Build all workspaces |
 | `bun run build:web` | Build only `packages/web` |
 | `bun run build:ui` | Build only `packages/ui` |
-| `bun run build:electron` | Run Electron package build script without full packaging |
-| `bun run electron:build` | Build packaged desktop app for the current OS |
+| `bun run build:tauri` | Build Tauri Rust binary (no installer) |
+| `bun run tauri:build` | Build packaged Tauri desktop app for the current OS |
 | `bun run vscode:build` | Build the VS Code extension |
 | `bun run vscode:package` | Package the VS Code extension as `.vsix` |
 | `bun run pack:web` | Create a package archive for `@openchamber/web` |
@@ -85,28 +84,18 @@ You usually build desktop installers on the target platform.
 macOS:
 
 ```bash
-bun run electron:build
-bun run release:test:intel
-bun run release:test:arm
+bun run tauri:build -- --target aarch64-apple-darwin
+bun run tauri:build -- --target x86_64-apple-darwin
 ```
 
-Windows:
+Linux x64 and arm64 bundles are packaged natively on the matching host
+architecture via the Tauri CLI:
 
 ```bash
-bun run electron:build
+bun run tauri:build
 ```
 
-Linux x64 and arm64 AppImages are packaged natively on the matching host architecture. Use Bun for dependency installation and packaging orchestration:
-
-```bash
-OPENCHAMBER_TARGET_ARCH=x64 bun run electron:build
-# On an arm64 host:
-OPENCHAMBER_TARGET_ARCH=arm64 bun run electron:build
-
-bun run --cwd packages/electron verify:linux-appimage
-```
-
-The final AppImage verifier checks desktop identity and the architecture of Electron, the bundled OpenCode CLI, and packaged native modules.
+`OPENCHAMBER_TARGET_ARCH` selects between x64 and arm64 bundle suffixes.
 
 ## Before Submitting
 

@@ -18,7 +18,9 @@
       "@/*": ["../ui/src/*", "./src/*"],
       "@web/*": ["./src/*"],
       "@openchamber/ui/*": ["../ui/src/*"],
-      "@openchamber/web/*": ["./src/*"]
+      "@openchamber/web/*": ["./src/*"],
+      "@openchamber/tauri": ["../tauri/src/index.ts"],
+      "@openchamber/tauri/*": ["../tauri/src/*"]
     }
   },
   "include": ["src", "../ui/src", "../ui/src/types/**/*"]
