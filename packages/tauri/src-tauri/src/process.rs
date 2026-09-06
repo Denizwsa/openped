@@ -280,16 +280,16 @@ fn resolve_openchamber_launcher(port: u16) -> Result<(String, Vec<String>)> {
         }
     }
 
-    // Dev mode: workspace root is two levels up from src-tauri.
-    // NOTE: CARGO_MANIFEST_DIR only exists at compile time, so bake it in
-    // with env!() — std::env::var would find nothing at runtime.
+    // Dev mode: workspace root is two levels up from src-tauri, i.e. the
+    // `packages/` dir. NOTE: CARGO_MANIFEST_DIR only exists at compile
+    // time, so bake it in with env!() — std::env::var is empty at runtime.
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let workspace_root = PathBuf::from(&manifest_dir)
+    let packages_dir = PathBuf::from(&manifest_dir)
         .parent()
         .and_then(|p| p.parent())
         .map(PathBuf::from)
         .unwrap_or_default();
-    let dev_script = workspace_root.join("packages/web/server/index.js");
+    let dev_script = packages_dir.join("web/server/index.js");
     if dev_script.is_file() {
         let program = std::env::var("OPENCHAMBER_SERVER_NODE").unwrap_or_else(|_| "node".to_string());
         return Ok((

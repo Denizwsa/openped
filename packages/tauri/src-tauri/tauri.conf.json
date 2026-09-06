@@ -8,22 +8,7 @@
     "devUrl": "http://localhost:5173"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "OpenChamber",
-        "width": 1280,
-        "height": 820,
-        "minWidth": 800,
-        "minHeight": 520,
-        "resizable": true,
-        "fullscreen": false,
-        "decorations": true,
-        "transparent": false,
-        "titleBarStyle": "Visible",
-        "url": "index.html"
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ws: wss: http://127.0.0.1:* http://localhost:*; frame-src 'self' openchamber-ui: http://127.0.0.1:* http://localhost:*",
       "assetProtocol": {
